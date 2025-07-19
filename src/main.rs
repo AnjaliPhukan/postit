@@ -6,7 +6,7 @@ fn main() {
     let mut args_iter = env::args()
         .collect::<Vec<String>>()
         .into_iter();
-    args_iter.next();
+    args_iter.next(); // consume cli tool name
  
     let mut essential_args = Vec::<String>::with_capacity(2);
     let mut title: Option<String> = None;
@@ -49,14 +49,27 @@ fn fill_html(page_title: &str, heading: &str) -> String {
 
 fn convert_line(line: &str, title: &mut Option<String>) -> String {
     let line_graphemes = line.graphemes(true).collect::<Vec<&str>>();
+    if line_graphemes[0..7].concat() == format!("{}{}", "#".repeat(6), " ") {
+        return format!("<h6>{}</h6>", (&line_graphemes[6..]).concat().trim());
+    }
+    if line_graphemes[0..6].concat() == format!("{}{}", "#".repeat(5), " ") {
+        return format!("<h5>{}</h5>", (&line_graphemes[5..]).concat().trim());
+    }
+    if line_graphemes[0..5].concat() == format!("{}{}", "#".repeat(4), " ") {
+        return format!("<h4>{}</h4>", (&line_graphemes[4..]).concat().trim());
+    }
+    if line_graphemes[0..4].concat() == format!("{}{}", "#".repeat(3), " ") {
+        return format!("<h3>{}</h3>", (&line_graphemes[3..]).concat().trim());
+    }
+    if line_graphemes[0..3].concat() == format!("{}{}", "#".repeat(2), " ") {
+        return format!("<h2>{}</h2>", (&line_graphemes[2..]).concat().trim());
+    }
     if (line_graphemes[0] == "#") && (line_graphemes[1] == " ") {
         match *title {
             None => { *title = Some(line_graphemes[1..].concat().trim().to_string()); },
             Some(_) => { }
         }
-        return format!("<h1>{}</h1>", (&line_graphemes[1..]).concat().trim());
-
-    } else {
-        return format!("<p>{}</p>", line);
+        return format!("<h1>{}</h1>", (&line_graphemes[2..]).concat().trim());
     }
+    return format!("<p>{}</p>", line);
 }
