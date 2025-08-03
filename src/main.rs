@@ -50,6 +50,36 @@ fn fill_html(page_title: &str, heading: &str) -> String {
     )
 }
 
+fn resolve_special(line: &str) -> String {
+    let mut converted = String::new();
+    let mut special_stack = Vec::<char>::new();
+    let symbols = line.chars().collect::<Vec<char>>();
+    for (i, sym) in symbols.iter().enumerate() {
+        if *sym == '*' {
+            match special_stack.last() {
+                Some(&top_sym) => {
+                    if top_sym == '*' {
+                        special_stack.pop();
+                        converted.push_str("</em>");
+                        continue;
+                    } else {
+                        special_stack.push('*');
+                        converted.push_str("<em>");
+                        continue;
+                    }
+                },
+                None => {
+                    special_stack.push('*');
+                    converted.push_str("<em>");
+                    continue;
+                }
+            }
+        }
+        converted.push(*sym);
+    }
+    return converted;
+}
+
 fn split_first_space(line: &str) -> (&str, &str) {
     let symbols = line.chars().collect::<Vec<char>>();
     for (i, sym) in symbols.iter().enumerate() {
@@ -66,18 +96,18 @@ fn split_first_space(line: &str) -> (&str, &str) {
 fn convert_line(line: &str, title: &mut Option<String>) -> String {
     let (first_chunk, rest) = split_first_space(line);
     match first_chunk {
-        "######" => { return format!("<h6>{}</h6>", rest); },
-        "#####" => { return format!("<h5>{}</h5>", rest); },
-        "####" =>  { return format!("<h4>{}</h4>", rest); },
-        "###" =>  { return format!("<h3>{}</h3>", rest); },
-        "##" =>  { return format!("<h2>{}</h2>", rest); },
+        "######" => { return format!("<h6>{}</h6>", &resolve_special(rest)); },
+        "#####" => { return format!("<h5>{}</h5>", &resolve_special(rest)); },
+        "####" =>  { return format!("<h4>{}</h4>", &resolve_special(rest)); },
+        "###" =>  { return format!("<h3>{}</h3>", &resolve_special(rest)); },
+        "##" =>  { return format!("<h2>{}</h2>", &resolve_special(rest)); },
         "#" => { 
             match *title {
                 None => { *title = Some(String::from(rest)); },
                 Some(_) => { }
             }
-            return format!("<h1>{}</h1>", rest);
+            return format!("<h1>{}</h1>", &resolve_special(rest));
         },
-        _ => { return format!("<p>{}</p>", rest); }
+        _ => { return format!("<p>{}</p>", &resolve_special(rest)); }
     }
 }
