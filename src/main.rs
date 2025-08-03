@@ -13,7 +13,7 @@ fn main() {
             if arg == "--title" || arg == "-t" {
                 title = Some(args_iter.next().expect("No title specified."));
             } else {
-                essential_args.push(arg)
+                essential_args.push(arg);
             }
         } else {
             break;
@@ -51,9 +51,13 @@ fn fill_html(page_title: &str, heading: &str) -> String {
 }
 
 fn split_first_space(line: &str) -> (&str, &str) {
-    for (i, sym) in line.chars().enumerate() {
-        if sym == ' ' {
-            return (&line[0..i], &line[i+1..]);
+    let symbols = line.chars().collect::<Vec<char>>();
+    for (i, sym) in symbols.iter().enumerate() {
+        if *sym == ' ' {
+            match symbols.get(i+1) {
+                Some(_) => { return (&line[0..i], &line[i+1..]); },
+                None => { return (&line[0..i], ""); }
+            }
         }
     }
     return (&line[0..], "");
