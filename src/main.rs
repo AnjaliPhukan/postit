@@ -1,33 +1,35 @@
-use std::fs;
 use std::env;
-use unicode_segmentation::UnicodeSegmentation;
+use std::fs;
 
 fn main() {
-    let mut args_iter = env::args()
-        .collect::<Vec<String>>()
-        .into_iter();
+    let mut args_iter = env::args().collect::<Vec<String>>().into_iter();
     args_iter.next(); // consume cli tool name
- 
+
     let mut essential_args = Vec::<String>::with_capacity(2);
     let mut title: Option<String> = None;
 
     loop {
         if let Some(arg) = args_iter.next() {
-            if arg == "--title" { title = Some(args_iter.next().expect("No title specified.")); } 
-            else { essential_args.push(arg) }
-        } else { break; }
+            if arg == "--title" || arg == "-t" {
+                title = Some(args_iter.next().expect("No title specified."));
+            } else {
+                essential_args.push(arg)
+            }
+        } else {
+            break;
+        }
     }
 
-    let input: String = fs::read_to_string(&essential_args[0])
-        .expect("Error reading file to string");
+    let input: String =
+        fs::read_to_string(&essential_args[0]).expect("Error reading file to string");
     let mut output = String::new();
     for line in input.lines() {
-        let converted = convert_line(&line, &mut title);
+        let converted = convert_line(line, &mut title);
         output.push_str(&converted);
     }
     match title {
         Some(exp) => output = fill_html(&exp, &output),
-        None => output = fill_html("Untitled", &output)
+        None => output = fill_html("Untitled", &output),
     }
     fs::write(&essential_args[1], output)
         .expect("Error writing to specified output file");
@@ -35,7 +37,7 @@ fn main() {
 
 fn fill_html(page_title: &str, heading: &str) -> String {
     format!(
-    "<!DOCTYPE html>
+        "<!DOCTYPE html>
 <html lang=\"en\">
     <head>
         <meta charset=\"UTF-8\">
@@ -44,32 +46,34 @@ fn fill_html(page_title: &str, heading: &str) -> String {
     </head>
     <body>{}</body>
 </html>",
-    page_title, heading)
+        page_title, heading
+    )
+}
+
+fn split_first_space(line: &str) -> (&str, &str) {
+    for (i, sym) in line.chars().enumerate() {
+        if sym == ' ' {
+            return (&line[0..i], &line[i+1..]);
+        }
+    }
+    return (&line[0..], "");
 }
 
 fn convert_line(line: &str, title: &mut Option<String>) -> String {
-    let line_graphemes = line.graphemes(true).collect::<Vec<&str>>();
-    if line_graphemes[0..7].concat() == format!("{}{}", "#".repeat(6), " ") {
-        return format!("<h6>{}</h6>", (&line_graphemes[6..]).concat().trim());
+    let (first_chunk, rest) = split_first_space(line);
+    match first_chunk {
+        "######" => { return format!("<h6>{}</h6>", rest); },
+        "#####" => { return format!("<h5>{}</h5>", rest); },
+        "####" =>  { return format!("<h4>{}</h4>", rest); },
+        "###" =>  { return format!("<h3>{}</h3>", rest); },
+        "##" =>  { return format!("<h2>{}</h2>", rest); },
+        "#" => { 
+            match *title {
+                None => { *title = Some(String::from(rest)); },
+                Some(_) => { }
+            }
+            return format!("<h1>{}</h1>", rest);
+        },
+        _ => { return format!("<p>{}</p>", rest); }
     }
-    if line_graphemes[0..6].concat() == format!("{}{}", "#".repeat(5), " ") {
-        return format!("<h5>{}</h5>", (&line_graphemes[5..]).concat().trim());
-    }
-    if line_graphemes[0..5].concat() == format!("{}{}", "#".repeat(4), " ") {
-        return format!("<h4>{}</h4>", (&line_graphemes[4..]).concat().trim());
-    }
-    if line_graphemes[0..4].concat() == format!("{}{}", "#".repeat(3), " ") {
-        return format!("<h3>{}</h3>", (&line_graphemes[3..]).concat().trim());
-    }
-    if line_graphemes[0..3].concat() == format!("{}{}", "#".repeat(2), " ") {
-        return format!("<h2>{}</h2>", (&line_graphemes[2..]).concat().trim());
-    }
-    if (line_graphemes[0] == "#") && (line_graphemes[1] == " ") {
-        match *title {
-            None => { *title = Some(line_graphemes[1..].concat().trim().to_string()); },
-            Some(_) => { }
-        }
-        return format!("<h1>{}</h1>", (&line_graphemes[2..]).concat().trim());
-    }
-    return format!("<p>{}</p>", line);
 }
